@@ -1,3 +1,4 @@
+import random
 import streamlit as st
 import unicodedata
 import importlib.util
@@ -28,38 +29,84 @@ def carregar_categorias():
     return categorias
 
 
+def preparar_jogo(listas, quantas):
+    """Sorteia de forma equilibrada entre categorias e baralha as opções."""
+    listas = [random.sample(l, len(l)) for l in listas]
+    sorteadas = []
+    while len(sorteadas) < quantas and any(listas):
+        for l in listas:
+            if l and len(sorteadas) < quantas:
+                sorteadas.append(l.pop())
+    random.shuffle(sorteadas)
+
+    prontas = []
+    for p in sorteadas:
+        q = dict(p)
+        opcoes = list(p["opcoes"])
+        random.shuffle(opcoes)
+        q["opcoes"] = opcoes
+        prontas.append(q)
+    return prontas
+
+
 CATEGORIAS = carregar_categorias()
 
 # Logo (opcional): só aparece se existir o ficheiro logo.png
 imagem = Path(__file__).parent / "logo.png"
 if imagem.exists():
     st.image(str(imagem), width=150)
-st.title("Quiz da Tuna")
+st.title("🦉 Quiz aprendizes 🦉")
 
 if not CATEGORIAS:
     st.info("Ainda não há perguntas.")
     st.stop()
 
-# Estado do jogo (a memória entre cliques)
 if "a_jogar" not in st.session_state:
     st.session_state.a_jogar = False
 
 
-# ---------- ECRÃ 1: ESCOLHER CATEGORIA E NÍVEL ----------
+# ---------- ECRÃ 1: ESCOLHER CATEGORIAS, NÍVEL E QUANTIDADE ----------
 if not st.session_state.a_jogar:
-    categoria = st.selectbox("Categoria", list(CATEGORIAS))
+    nomes = list(CATEGORIAS)
+
+    geral = st.checkbox("🎯 Geral (todas as categorias)")
+    if geral:
+        escolhidas = nomes
+        st.caption("Perguntas sorteadas de todas as categorias.")
+    else:
+        escolhidas = st.multiselect(
+            "Categorias (podes escolher várias)", nomes, default=nomes[:1]
+        )
+
     nivel = st.radio("Nível", ["Fácil", "Difícil"], horizontal=True)
 
-    if st.button("Começar"):
-        st.session_state.perguntas = CATEGORIAS[categoria]
-        st.session_state.nivel = nivel
-        st.session_state.i = 0
-        st.session_state.pontos = 0
-        st.session_state.revisao = []
-        st.session_state.a_jogar = True
-        st.rerun()
+    total_cat = sum(len(CATEGORIAS[c]) for c in escolhidas)
 
+    if total_cat == 0:
+        st.info("Escolhe pelo menos uma categoria.")
+    else:
+        if total_cat > 1:
+            quantas = st.slider("Número de perguntas", 1, total_cat, min(10, total_cat))
+        else:
+            quantas = 1
+            st.caption("Só há 1 pergunta nesta seleção.")
 
+        if st.button("Começar"):
+            for k in list(st.session_state.keys()):
+                if k.startswith("resp_"):
+                    del st.session_state[k]
+
+            st.session_state.perguntas = preparar_jogo(
+                [CATEGORIAS[c] for c in escolhidas], quantas
+            )
+            st.session_state.modo = "Geral" if geral else ", ".join(escolhidas)
+            st.session_state.nivel = nivel
+            st.session_state.i = 0
+            st.session_state.pontos = 0
+            st.session_state.revisao = []
+            st.session_state.a_jogar = True
+            st.rerun()
+            
 # ---------- ECRÃ 2: UMA PERGUNTA DE CADA VEZ ----------
 elif st.session_state.i < len(st.session_state.perguntas):
     perguntas = st.session_state.perguntas
