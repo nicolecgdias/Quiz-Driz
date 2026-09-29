@@ -145,12 +145,12 @@ else:
     st.write(f"**{percentagem}%** de respostas certas")
 
     if percentagem == 100:
-        st.success("Perfeito! Tuno/a de mão cheia 🎉")
+        st.success("Perfeito!  🎉")
         st.balloons()
     elif percentagem >= 60:
-        st.info("Muito bem, quase lá!")
+        st.info("Roma não se fez num dia , vais chegar lá, CORAGEM ⚔️")
     else:
-        st.warning("Ainda há ensaios para fazer 😄")
+        st.warning("just keep swimming 🐟 ")
 
     st.subheader("Revisão")
     for n, (p, r, certa) in enumerate(st.session_state.revisao):
